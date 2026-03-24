@@ -2,7 +2,7 @@
 
 A complete MCQ-based online examination system built with **Flask + MySQL**.
 Designed for university mini-projects (MU pattern).
-
+ 
 ---
 
 ## ✅ Features
