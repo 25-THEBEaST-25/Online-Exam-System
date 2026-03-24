@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All Results — ExamCloud</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<nav class="navbar">
+  <div class="navbar-brand">📋 Exam<span>Cloud</span></div>
+  <div class="navbar-links">
+    <a href="/admin">Dashboard</a>
+    <a href="/admin/exams">Exams</a>
+    <a href="/admin/students">Students</a>
+    <a href="/admin/results" class="active">Results</a>
+    <span class="nav-badge">ADMIN</span>
+    <form method="GET" action="/logout" style="margin:0;"><button class="btn-logout">Logout</button></form>
+  </div>
+</nav>
+<div class="container">
+  <div class="page-header">
+    <div>
+      <div class="breadcrumb"><a href="/admin">Dashboard</a></div>
+      <h1>All <span>Results</span></h1>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:2rem;">
+    {% if results %}
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Exam</th>
+            <th>Score</th>
+            <th>Percentage</th>
+            <th>Grade</th>
+            <th>Date & Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in results %}
+          {% set pct = ((r.score / r.total) * 100)|int if r.total else 0 %}
+          <tr>
+            <td>
+              <strong>{{ r.full_name }}</strong>
+              <div class="text-xs text-muted">@{{ r.username }}</div>
+            </td>
+            <td>{{ r.exam_name }}</td>
+            <td><span style="font-family:var(--font-mono);color:var(--teal);">{{ r.score }} / {{ r.total }}</span></td>
+            <td>
+              <div style="display:flex;align-items:center;gap:.5rem;">
+                <div style="flex:1;background:rgba(255,255,255,.06);border-radius:4px;height:6px;min-width:60px;">
+                  <div style="width:{{ pct }}%;height:100%;border-radius:4px;
+                    background:{% if pct >= 60 %}var(--green){% elif pct >= 35 %}var(--amber){% else %}var(--red){% endif %};"></div>
+                </div>
+                <span class="text-xs" style="font-family:var(--font-mono);">{{ pct }}%</span>
+              </div>
+            </td>
+            <td>
+              <span class="badge
+                {% if pct >= 75 %}badge-green
+                {% elif pct >= 60 %}badge-teal
+                {% elif pct >= 35 %}badge-amber
+                {% else %}badge-red{% endif %}">
+                {% if pct >= 75 %}Distinction
+                {% elif pct >= 60 %}First Class
+                {% elif pct >= 35 %}Pass
+                {% else %}Fail{% endif %}
+              </span>
+            </td>
+            <td class="text-xs text-muted">{{ r.attempted_at.strftime('%d %b %Y') }}<br>{{ r.attempted_at.strftime('%I:%M %p') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center" style="padding:2rem;">
+      <p class="text-muted">No results recorded yet.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+</body>
+</html>

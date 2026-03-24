@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ exam.exam_name }} — ExamCloud</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- STICKY EXAM HEADER -->
+<div class="exam-header">
+  <div>
+    <div class="exam-title">{{ exam.exam_name }}</div>
+    <div class="text-xs text-muted">{{ questions|length }} Questions · Do not refresh or close this tab</div>
+  </div>
+  <div class="timer-box" id="timerBox">
+    ⏱ <span id="timerDisplay">--:--</span>
+  </div>
+</div>
+
+<!-- PROGRESS BAR -->
+<div style="background:rgba(255,255,255,.06);height:4px;">
+  <div id="progressBar" style="height:100%;background:var(--teal);width:100%;transition:width 1s linear;"></div>
+</div>
+
+<form method="POST" action="/submit_exam/{{ exam.id }}" id="examForm">
+<div style="max-width:780px;margin:0 auto;padding:1.5rem;">
+
+  {% for q in questions %}
+  <div class="question-card">
+    <div class="question-num">Question {{ loop.index }} of {{ questions|length }}</div>
+    <div class="question-text">{{ q.question }}</div>
+    <div class="options-grid">
+
+      <label class="option-label">
+        <input type="radio" name="q_{{ q.id }}" value="1" onchange="updateCount()">
+        <span class="option-letter">A</span>
+        <span class="option-text">{{ q.option1 }}</span>
+      </label>
+
+      <label class="option-label">
+        <input type="radio" name="q_{{ q.id }}" value="2" onchange="updateCount()">
+        <span class="option-letter">B</span>
+        <span class="option-text">{{ q.option2 }}</span>
+      </label>
+
+      <label class="option-label">
+        <input type="radio" name="q_{{ q.id }}" value="3" onchange="updateCount()">
+        <span class="option-letter">C</span>
+        <span class="option-text">{{ q.option3 }}</span>
+      </label>
+
+      <label class="option-label">
+        <input type="radio" name="q_{{ q.id }}" value="4" onchange="updateCount()">
+        <span class="option-letter">D</span>
+        <span class="option-text">{{ q.option4 }}</span>
+      </label>
+
+    </div>
+  </div>
+  {% endfor %}
+
+  <!-- SUBMIT BAR -->
+  <div class="card" style="margin-bottom:2rem;">
+    <div class="flex items-center justify-between">
+      <div>
+        <span class="text-sm text-muted">Answered: </span>
+        <span id="answeredCount" class="text-teal" style="font-family:var(--font-mono);font-weight:700;">0</span>
+        <span class="text-muted text-sm"> / {{ questions|length }}</span>
+      </div>
+      <button type="submit" class="btn btn-primary btn-lg"
+        onclick="return confirm('Submit exam? You cannot change answers after this.')">
+        Check &amp; Submit ✓
+      </button>
+    </div>
+  </div>
+
+</div>
+</form>
+
+<!-- 2-MINUTE WARNING MODAL -->
+<div id="warningModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:999;align-items:center;justify-content:center;">
+  <div class="card" style="max-width:400px;text-align:center;padding:2.5rem;">
+    <div style="font-size:3rem;margin-bottom:1rem;">⚠️</div>
+    <h3 style="color:var(--amber);">Time Almost Up!</h3>
+    <p class="text-muted mt-1 mb-3">Less than 2 minutes remaining. The exam auto-submits at zero.</p>
+    <button class="btn btn-amber" onclick="document.getElementById('warningModal').style.display='none'">Got it</button>
+  </div>
+</div>
+
+<script>
+// ── COUNTDOWN TIMER ────────────────────────────────────────────
+const TOTAL_SECS = {{ exam.duration }} * 60;
+let timeLeft = TOTAL_SECS;
+let warned = false;
+
+function tick() {
+  const m = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+  const s = String(timeLeft % 60).padStart(2, '0');
+  document.getElementById('timerDisplay').textContent = m + ':' + s;
+
+  // Shrink progress bar from 100 → 0 as time runs out
+  const pct = (timeLeft / TOTAL_SECS) * 100;
+  document.getElementById('progressBar').style.width = pct + '%';
+
+  // Colour coding
+  const box = document.getElementById('timerBox');
+  if (timeLeft <= 60) {
+    box.className = 'timer-box danger';
+  } else if (timeLeft <= 120) {
+    box.className = 'timer-box warning';
+    if (!warned) {
+      warned = true;
+      const modal = document.getElementById('warningModal');
+      modal.style.display = 'flex';
+    }
+  }
+
+  // Auto-submit when time is up
+  if (timeLeft <= 0) {
+    clearInterval(timerInterval);
+    document.getElementById('examForm').submit();
+    return;
+  }
+  timeLeft--;
+}
+
+tick(); // run immediately so display is instant
+var timerInterval = setInterval(tick, 1000);
+
+// ── ANSWER COUNTER ─────────────────────────────────────────────
+function updateCount() {
+  var names = new Set();
+  document.querySelectorAll('input[type=radio]:checked').forEach(function(r) {
+    names.add(r.name);
+  });
+  document.getElementById('answeredCount').textContent = names.size;
+}
+
+// ── NAV GUARD (prevent accidental tab close) ───────────────────
+function navGuard(e) {
+  e.preventDefault();
+  e.returnValue = 'Leaving will lose your exam progress!';
+}
+window.addEventListener('beforeunload', navGuard);
+
+document.getElementById('examForm').addEventListener('submit', function() {
+  window.removeEventListener('beforeunload', navGuard);
+  clearInterval(timerInterval);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — ExamCloud</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="page-center">
+  <div class="auth-box">
+
+    <div class="auth-logo">
+      <div class="auth-logo-icon">📋</div>
+      <h2>Exam<span style="color:var(--teal)">Cloud</span></h2>
+      <p>Online Examination System</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages">
+          {% for cat, msg in messages %}
+            <div class="flash {{ cat }}">
+              {{ '✓' if cat == 'success' else '✕' }} {{ msg }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="card">
+      <h3 class="card-title" style="font-size:1.3rem;margin-bottom:1.5rem;">Sign In</h3>
+      <form method="POST" action="/login">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input class="form-control" type="text" name="username" placeholder="Enter username" required autofocus>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input class="form-control" type="password" name="password" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top:.5rem;">
+          Sign In →
+        </button>
+      </form>
+      <div class="auth-divider" style="margin-top:1.5rem;">New student?</div>
+      <a href="/register" class="btn btn-outline btn-full">Create Student Account</a>
+    </div>
+
+    <p class="text-center text-xs text-muted mt-2">
+      <!-- Default admin: <span style="font-family:var(--font-mono);color:var(--teal)">admin / admin123</span> -->
+    </p>
+  </div>
+</div>
+</body>
+</html>

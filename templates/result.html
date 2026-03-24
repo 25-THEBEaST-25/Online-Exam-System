@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Result — ExamCloud</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-brand">📋 Exam<span>Cloud</span></div>
+  <div class="navbar-links">
+    <a href="/student">Back to Dashboard</a>
+    <span class="nav-badge" style="background:var(--amber);">STUDENT</span>
+    <form method="GET" action="/logout" style="margin:0;"><button class="btn-logout">Logout</button></form>
+  </div>
+</nav>
+
+<div style="max-width:760px;margin:0 auto;padding:2rem 1.5rem;">
+
+  <!-- RESULT HERO -->
+  <div class="card result-hero">
+    <div class="score-ring">
+      <svg viewBox="0 0 150 150" width="150" height="150">
+        <circle class="score-ring-bg" cx="75" cy="75" r="65"/>
+        <circle class="score-ring-fill" id="ringFill"
+          cx="75" cy="75" r="65"
+          stroke-dasharray="408.41"
+          stroke-dashoffset="408.41"/>
+      </svg>
+      <div class="score-ring-text">
+        <div class="score-pct" id="pctNum">0%</div>
+        <div class="score-sub">{{ score }} / {{ total }}</div>
+      </div>
+    </div>
+
+    {% if percentage >= 75 %}
+      <h2 style="color:var(--green);">🎉 Distinction!</h2>
+      <p class="text-muted mt-1">Outstanding performance. You've mastered this topic!</p>
+    {% elif percentage >= 60 %}
+      <h2 style="color:var(--teal);">🏆 First Class</h2>
+      <p class="text-muted mt-1">Excellent result. Keep it up!</p>
+    {% elif percentage >= 35 %}
+      <h2 style="color:var(--amber);">✅ Passed</h2>
+      <p class="text-muted mt-1">You passed. Review the topics you missed to improve further.</p>
+    {% else %}
+      <h2 style="color:var(--red);">❌ Better Luck Next Time</h2>
+      <p class="text-muted mt-1">Don't give up — review the material and try again.</p>
+    {% endif %}
+
+    <div style="display:flex;gap:1.5rem;justify-content:center;margin-top:1.5rem;flex-wrap:wrap;">
+      <div style="text-align:center;">
+        <div style="font-size:1.6rem;font-weight:800;color:var(--green);font-family:var(--font-head);">{{ score }}</div>
+        <div class="text-xs text-muted">Correct</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:1.6rem;font-weight:800;color:var(--red);font-family:var(--font-head);">{{ total - score }}</div>
+        <div class="text-xs text-muted">Wrong / Skipped</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:1.6rem;font-weight:800;color:var(--amber);font-family:var(--font-head);">{{ percentage }}%</div>
+        <div class="text-xs text-muted">Score</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUESTION BREAKDOWN -->
+  <h2 style="margin:2rem 0 1rem;font-size:1.1rem;font-weight:700;">
+    Question-by-Question Breakdown
+  </h2>
+
+  {% for item in detailed %}
+  <div class="result-question-card {{ 'correct' if item.is_correct else ('skipped' if item.student_answer is none else 'wrong') }}">
+
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:.75rem;">
+      <div style="font-size:.95rem;font-weight:500;line-height:1.5;">
+        <span class="text-muted text-xs">Q{{ loop.index }}&nbsp;·&nbsp;</span>{{ item.question }}
+      </div>
+      <span class="badge flex-shrink-0
+        {% if item.is_correct %}badge-green
+        {% elif item.student_answer is none %}badge-red
+        {% else %}badge-red{% endif %}">
+        {% if item.is_correct %}✓ Correct
+        {% elif item.student_answer is none %}Skipped
+        {% else %}✗ Wrong{% endif %}
+      </span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.5rem;">
+      {% set letters = ['A','B','C','D'] %}
+      {% for i in range(4) %}
+      <div style="padding:.5rem .75rem;border-radius:6px;font-size:.82rem;
+        {% if (i+1) == item.correct_answer %}
+          background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.3);color:var(--green);
+        {% elif (i+1) == item.student_answer and not item.is_correct %}
+          background:rgba(255,90,90,.1);border:1px solid rgba(255,90,90,.3);color:var(--red);
+        {% else %}
+          background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);color:var(--muted);
+        {% endif %}
+        ">
+        <strong>{{ letters[i] }}.</strong> {{ item.options[i] }}
+        {% if (i+1) == item.correct_answer %} ✓{% endif %}
+        {% if (i+1) == item.student_answer and not item.is_correct %} ✗{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+  </div>
+  {% endfor %}
+
+  <div class="flex gap-2 mt-3" style="margin-bottom:3rem;">
+    <a href="/student" class="btn btn-primary btn-lg">← Back to Dashboard</a>
+  </div>
+
+</div>
+
+<script>
+// Animate score ring on load
+const pct = {{ percentage }};
+const circumference = 408.41;
+const offset = circumference - (pct / 100) * circumference;
+
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    const fill = document.getElementById('ringFill');
+    fill.style.transition = 'stroke-dashoffset 1.4s cubic-bezier(.25,.8,.25,1)';
+    fill.style.strokeDashoffset = offset;
+
+    // Set color based on score
+    if (pct >= 60) fill.style.stroke = 'var(--green)';
+    else if (pct >= 35) fill.style.stroke = 'var(--amber)';
+    else fill.style.stroke = 'var(--red)';
+
+    // Animate counter
+    let cur = 0;
+    const step = pct / 60;
+    const counter = setInterval(function() {
+      cur = Math.min(cur + step, pct);
+      document.getElementById('pctNum').textContent = Math.round(cur) + '%';
+      if (cur >= pct) clearInterval(counter);
+    }, 1000 / 60);
+  }, 300);
+});
+</script>
+</body>
+</html>

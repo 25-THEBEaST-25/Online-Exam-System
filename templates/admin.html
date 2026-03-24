@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — ExamCloud</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-brand">📋 Exam<span>Cloud</span></div>
+  <div class="navbar-links">
+    <a href="/admin" class="active">Dashboard</a>
+    <a href="/admin/exams">Exams</a>
+    <a href="/admin/students">Students</a>
+    <a href="/admin/results">Results</a>
+    <span class="nav-badge">ADMIN</span>
+    <form method="GET" action="/logout" style="margin:0;">
+      <button class="btn-logout">Logout</button>
+    </form>
+  </div>
+</nav>
+
+<div class="container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-messages mt-2">
+        {% for cat, msg in messages %}
+          <div class="flash {{ cat }}">{{ '✓' if cat == 'success' else '✕' }} {{ msg }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="page-header">
+    <div>
+      <div class="breadcrumb">Welcome back, {{ session.full_name }}</div>
+      <h1>Admin <span>Dashboard</span></h1>
+    </div>
+    <a href="/admin/add_exam" class="btn btn-primary">+ Create Exam</a>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-num">{{ student_count }}</div>
+      <div class="stat-label">Registered Students</div>
+    </div>
+    <div class="stat-card amber">
+      <div class="stat-num">{{ exam_count }}</div>
+      <div class="stat-label">Total Exams</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-num">{{ result_count }}</div>
+      <div class="stat-label">Exams Attempted</div>
+    </div>
+  </div>
+
+  <!-- RECENT RESULTS -->
+  <div class="card">
+    <div class="flex items-center justify-between mb-2">
+      <div class="card-title" style="margin:0;">Recent Attempts</div>
+      <a href="/admin/results" class="btn btn-outline btn-sm">View All</a>
+    </div>
+    {% if recent_results %}
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Exam</th>
+            <th>Score</th>
+            <th>Percentage</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in recent_results %}
+          <tr>
+            <td><strong>{{ r.full_name }}</strong></td>
+            <td>{{ r.exam_name }}</td>
+            <td><span class="text-teal font-mono">{{ r.score }}/{{ r.total }}</span></td>
+            <td>
+              {% set pct = ((r.score / r.total) * 100)|int if r.total else 0 %}
+              <span class="badge {% if pct >= 60 %}badge-green{% elif pct >= 35 %}badge-amber{% else %}badge-red{% endif %}">
+                {{ pct }}%
+              </span>
+            </td>
+            <td class="text-muted text-xs">{{ r.attempted_at.strftime('%d %b %Y, %I:%M %p') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted text-sm">No attempts recorded yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- QUICK ACTIONS -->
+  <div class="grid-3 mt-3" style="margin-bottom:2rem;">
+    <a href="/admin/add_exam" class="card" style="text-decoration:none;transition:transform .2s,border-color .2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.borderColor='rgba(0,212,200,.4)'" onmouseout="this.style.transform='';this.style.borderColor=''">
+      <div style="font-size:2rem;margin-bottom:.75rem;">📝</div>
+      <div class="card-title" style="margin-bottom:.4rem;">Create Exam</div>
+      <p class="text-sm text-muted">Add new MCQ exam with questions and timer</p>
+    </a>
+    <a href="/admin/students" class="card" style="text-decoration:none;transition:transform .2s,border-color .2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.borderColor='rgba(245,166,35,.4)'" onmouseout="this.style.transform='';this.style.borderColor=''">
+      <div style="font-size:2rem;margin-bottom:.75rem;">👥</div>
+      <div class="card-title" style="margin-bottom:.4rem;">Manage Students</div>
+      <p class="text-sm text-muted">Add, view and manage student accounts</p>
+    </a>
+    <a href="/admin/results" class="card" style="text-decoration:none;transition:transform .2s,border-color .2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.borderColor='rgba(46,204,113,.4)'" onmouseout="this.style.transform='';this.style.borderColor=''">
+      <div style="font-size:2rem;margin-bottom:.75rem;">📊</div>
+      <div class="card-title" style="margin-bottom:.4rem;">All Results</div>
+      <p class="text-sm text-muted">Browse full exam result history</p>
+    </a>
+  </div>
+</div>
+</body>
+</html>

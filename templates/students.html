@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Students — ExamCloud</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<nav class="navbar">
+  <div class="navbar-brand">📋 Exam<span>Cloud</span></div>
+  <div class="navbar-links">
+    <a href="/admin">Dashboard</a>
+    <a href="/admin/exams">Exams</a>
+    <a href="/admin/students" class="active">Students</a>
+    <a href="/admin/results">Results</a>
+    <span class="nav-badge">ADMIN</span>
+    <form method="GET" action="/logout" style="margin:0;"><button class="btn-logout">Logout</button></form>
+  </div>
+</nav>
+<div class="container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}<div class="flash-messages mt-2">{% for c,m in messages %}<div class="flash {{ c }}">{{ '✓' if c=='success' else '✕' }} {{ m }}</div>{% endfor %}</div>{% endif %}
+  {% endwith %}
+
+  <div class="page-header">
+    <div>
+      <div class="breadcrumb"><a href="/admin">Dashboard</a></div>
+      <h1>Manage <span>Students</span></h1>
+    </div>
+    <button class="btn btn-primary" onclick="toggleAddForm()">+ Add Student</button>
+  </div>
+
+  <!-- ADD STUDENT FORM -->
+  <div id="addStudentForm" style="display:none;" class="card mb-3">
+    <div class="card-title">Add New Student</div>
+    <form method="POST" action="/admin/add_student">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input class="form-control" type="text" name="full_name" required placeholder="Full name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input class="form-control" type="text" name="username" required placeholder="Unique username">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-control" type="email" name="email" placeholder="student@mu.ac.in">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input class="form-control" type="password" name="password" required placeholder="Min 6 chars" minlength="6">
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary">Add Student</button>
+      <button type="button" class="btn btn-outline" onclick="toggleAddForm()">Cancel</button>
+    </form>
+  </div>
+
+  <!-- STUDENTS TABLE -->
+  <div class="card" style="margin-bottom:2rem;">
+    {% if students %}
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>#</th><th>Name</th><th>Username</th><th>Email</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for s in students %}
+          <tr>
+            <td class="text-muted text-xs">{{ loop.index }}</td>
+            <td><strong>{{ s.full_name or '—' }}</strong></td>
+            <td><span style="font-family:var(--font-mono);color:var(--teal);font-size:.85rem;">{{ s.username }}</span></td>
+            <td class="text-muted text-sm">{{ s.email or '—' }}</td>
+            <td>
+              <a href="/admin/results?student={{ s.id }}" class="btn btn-outline btn-sm">📊 Results</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center" style="padding:2rem;">
+      <p class="text-muted">No students registered yet.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+<script>
+function toggleAddForm() {
+  const el = document.getElementById('addStudentForm');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+</body>
+</html>

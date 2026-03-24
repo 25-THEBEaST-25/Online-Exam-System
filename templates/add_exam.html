@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Exam — ExamCloud</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-brand">📋 Exam<span>Cloud</span></div>
+  <div class="navbar-links">
+    <a href="/admin">Dashboard</a>
+    <a href="/admin/exams">Exams</a>
+    <a href="/admin/students">Students</a>
+    <a href="/admin/results">Results</a>
+    <span class="nav-badge">ADMIN</span>
+    <form method="GET" action="/logout" style="margin:0;">
+      <button class="btn-logout">Logout</button>
+    </form>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="page-header">
+    <div>
+      <div class="breadcrumb"><a href="/admin">Dashboard</a> / <a href="/admin/exams">Exams</a></div>
+      <h1>Create <span>New Exam</span></h1>
+    </div>
+  </div>
+
+  <form method="POST" action="/admin/add_exam" id="examForm">
+
+    <!-- EXAM DETAILS -->
+    <div class="card mb-3">
+      <div class="card-title">Exam Details</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Exam Name</label>
+          <input class="form-control" type="text" name="exam_name" placeholder="e.g. Python Fundamentals — Unit 1" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Duration (minutes)</label>
+          <input class="form-control" type="number" name="duration" value="10" min="1" max="180" required>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTIONS -->
+    <div class="flex items-center justify-between mb-2">
+      <h2 style="font-size:1.1rem;font-weight:700;">Questions <span id="qCount" class="text-teal">(0)</span></h2>
+      <button type="button" class="btn btn-outline" onclick="addQuestion()">+ Add Question</button>
+    </div>
+
+    <div id="questionsContainer"></div>
+
+    <div class="flex gap-2 mt-3" style="margin-bottom:2rem;">
+      <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" disabled>
+        💾 Save Exam
+      </button>
+      <a href="/admin/exams" class="btn btn-outline btn-lg">Cancel</a>
+    </div>
+
+  </form>
+</div>
+
+<script>
+let qNum = 0;
+const letters = ['A','B','C','D'];
+
+function addQuestion() {
+  qNum++;
+  updateQCount();
+  const container = document.getElementById('questionsContainer');
+  const div = document.createElement('div');
+  div.className = 'question-builder';
+  div.id = `qBlock_${qNum}`;
+  div.innerHTML = `
+    <div class="q-num-badge">Q${qNum}</div>
+    <button type="button" onclick="removeQuestion(${qNum})"
+      style="position:absolute;top:.75rem;right:.75rem;background:none;border:none;color:var(--red);cursor:pointer;font-size:1.1rem;">✕</button>
+
+    <div class="form-group" style="margin-top:.5rem;">
+      <label class="form-label">Question</label>
+      <input class="form-control" type="text" name="question[]"
+        placeholder="Enter your question here..." required>
+    </div>
+
+    <div class="options-grid-2">
+      ${[1,2,3,4].map(n => `
+        <div class="form-group">
+          <label class="form-label">Option ${letters[n-1]}</label>
+          <input class="form-control" type="text" name="option${n}[]"
+            placeholder="Option ${letters[n-1]}" required>
+        </div>
+      `).join('')}
+    </div>
+
+    <div>
+      <label class="form-label">Correct Answer</label>
+      <div class="correct-select" id="correctSelect_${qNum}">
+        ${[1,2,3,4].map(n => `
+          <button type="button" class="correct-opt" data-val="${n}"
+            onclick="selectCorrect(${qNum}, ${n})">
+            ${letters[n-1]}
+          </button>
+        `).join('')}
+        <input type="hidden" name="correct[]" id="correctVal_${qNum}" value="" required>
+      </div>
+      <p style="font-size:.75rem;color:var(--muted);margin-top:.35rem;">Click the letter that is the correct answer</p>
+    </div>
+  `;
+  container.appendChild(div);
+  updateSubmitBtn();
+
+  // Scroll to new question
+  div.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function removeQuestion(num) {
+  document.getElementById(`qBlock_${num}`)?.remove();
+  renumberQuestions();
+  updateSubmitBtn();
+  updateQCount();
+}
+
+function renumberQuestions() {
+  document.querySelectorAll('.question-builder').forEach((el, i) => {
+    el.querySelector('.q-num-badge').textContent = `Q${i+1}`;
+  });
+}
+
+function selectCorrect(qNum, val) {
+  document.querySelectorAll(`#correctSelect_${qNum} .correct-opt`).forEach(btn => {
+    btn.classList.toggle('selected', parseInt(btn.dataset.val) === val);
+  });
+  document.getElementById(`correctVal_${qNum}`).value = val;
+  updateSubmitBtn();
+}
+
+function updateQCount() {
+  const count = document.querySelectorAll('.question-builder').length;
+  document.getElementById('qCount').textContent = `(${count})`;
+}
+
+function updateSubmitBtn() {
+  const qs = document.querySelectorAll('.question-builder');
+  const allCorrect = [...document.querySelectorAll('[id^="correctVal_"]')].every(el => el.value !== '');
+  document.getElementById('submitBtn').disabled = qs.length === 0 || !allCorrect;
+}
+
+// Add one question by default
+addQuestion();
+</script>
+</body>
+</html>
