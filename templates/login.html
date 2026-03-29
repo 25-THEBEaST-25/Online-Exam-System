@@ -6,7 +6,7 @@
   <title>Login — ExamCloud</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body data-theme="dark">
 <div class="page-center">
   <div class="auth-box">
 
@@ -51,6 +51,7 @@
       <!-- Default admin: <span style="font-family:var(--font-mono);color:var(--teal)">admin / admin123</span> -->
     </p>
   </div>
+  {% include 'theme_js.html' %}
 </div>
 </body>
 </html>

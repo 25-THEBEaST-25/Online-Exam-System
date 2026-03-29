@@ -5,8 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Create Exam — ExamCloud</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+  .question-builder { position: relative; }
+  .q-num-badge { position: absolute; top: -10px; left: 1rem; background: var(--navy); color: var(--teal); border: 1px solid var(--border); border-radius: 4px; padding: 0 .6rem; font-size: .72rem; font-family: var(--font-mono); }
+  .options-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+  .correct-select { display: flex; gap: .5rem; margin-top: .75rem; flex-wrap: wrap; }
+  .correct-opt { padding: .35rem .75rem; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; background: transparent; color: var(--muted); transition: all .15s; }
+  .correct-opt:hover { border-color: var(--teal); color: var(--teal); }
+  .correct-opt.selected { background: var(--teal); color: var(--navy); border-color: var(--teal); font-weight: 700; }
+  </style>
 </head>
-<body>
+<body data-theme="dark">
 
 <nav class="navbar">
   <div class="navbar-brand">📋 Exam<span>Cloud</span></div>
@@ -19,6 +28,7 @@
     <form method="GET" action="/logout" style="margin:0;">
       <button class="btn-logout">Logout</button>
     </form>
+    <button class="theme-toggle" title="Toggle Theme" aria-label="Toggle light/dark mode"></button>
   </div>
 </nav>
 
@@ -50,14 +60,14 @@
     <!-- QUESTIONS -->
     <div class="flex items-center justify-between mb-2">
       <h2 style="font-size:1.1rem;font-weight:700;">Questions <span id="qCount" class="text-teal">(0)</span></h2>
-      <button type="button" class="btn btn-outline" onclick="addQuestion()">+ Add Question</button>
+      <button type="button" class="btn btn-primary" id="addQBtn">+ Add Question</button>
     </div>
 
     <div id="questionsContainer"></div>
 
     <div class="flex gap-2 mt-3" style="margin-bottom:2rem;">
       <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" disabled>
-        💾 Save Exam
+        💾 Save & Submit Exam
       </button>
       <a href="/admin/exams" class="btn btn-outline btn-lg">Cancel</a>
     </div>
@@ -67,91 +77,99 @@
 
 <script>
 let qNum = 0;
-const letters = ['A','B','C','D'];
+const letters = ['A', 'B', 'C', 'D'];
+
+document.getElementById('addQBtn').addEventListener('click', addQuestion);
 
 function addQuestion() {
   qNum++;
   updateQCount();
   const container = document.getElementById('questionsContainer');
   const div = document.createElement('div');
-  div.className = 'question-builder';
-  div.id = `qBlock_${qNum}`;
+  div.className = 'question-builder card mb-3';
+  div.id = 'qBlock_' + qNum;
   div.innerHTML = `
     <div class="q-num-badge">Q${qNum}</div>
-    <button type="button" onclick="removeQuestion(${qNum})"
-      style="position:absolute;top:.75rem;right:.75rem;background:none;border:none;color:var(--red);cursor:pointer;font-size:1.1rem;">✕</button>
-
-    <div class="form-group" style="margin-top:.5rem;">
+    <button type="button" class="remove-btn" onclick="removeQuestion(${qNum})">✕</button>
+    <div class="form-group">
       <label class="form-label">Question</label>
-      <input class="form-control" type="text" name="question[]"
-        placeholder="Enter your question here..." required>
+      <input class="form-control" type="text" name="question[]" placeholder="Enter your question here..." required>
     </div>
-
     <div class="options-grid-2">
-      ${[1,2,3,4].map(n => `
-        <div class="form-group">
-          <label class="form-label">Option ${letters[n-1]}</label>
-          <input class="form-control" type="text" name="option${n}[]"
-            placeholder="Option ${letters[n-1]}" required>
-        </div>
-      `).join('')}
-    </div>
-
-    <div>
-      <label class="form-label">Correct Answer</label>
-      <div class="correct-select" id="correctSelect_${qNum}">
-        ${[1,2,3,4].map(n => `
-          <button type="button" class="correct-opt" data-val="${n}"
-            onclick="selectCorrect(${qNum}, ${n})">
-            ${letters[n-1]}
-          </button>
-        `).join('')}
-        <input type="hidden" name="correct[]" id="correctVal_${qNum}" value="" required>
+      <div class="form-group">
+        <label class="form-label">Option A</label>
+        <input class="form-control" type="text" name="option1[]" placeholder="Option A" required>
       </div>
-      <p style="font-size:.75rem;color:var(--muted);margin-top:.35rem;">Click the letter that is the correct answer</p>
+      <div class="form-group">
+        <label class="form-label">Option B</label>
+        <input class="form-control" type="text" name="option2[]" placeholder="Option B" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Option C</label>
+        <input class="form-control" type="text" name="option3[]" placeholder="Option C" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Option D</label>
+        <input class="form-control" type="text" name="option4[]" placeholder="Option D" required>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Correct Answer (1=A, 2=B, 3=C, 4=D)</label>
+      <select class="form-control" name="correct[]" required>
+        <option value="">Select correct option</option>
+        <option value="1">A</option>
+        <option value="2">B</option>
+        <option value="3">C</option>
+        <option value="4">D</option>
+      </select>
     </div>
   `;
   container.appendChild(div);
   updateSubmitBtn();
-
-  // Scroll to new question
-  div.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  div.scrollIntoView({ behavior: 'smooth' });
 }
 
 function removeQuestion(num) {
-  document.getElementById(`qBlock_${num}`)?.remove();
+  var block = document.getElementById('qBlock_' + num);
+  if (block) {
+    block.remove();
+  }
   renumberQuestions();
   updateSubmitBtn();
   updateQCount();
 }
 
 function renumberQuestions() {
-  document.querySelectorAll('.question-builder').forEach((el, i) => {
-    el.querySelector('.q-num-badge').textContent = `Q${i+1}`;
+  var blocks = document.querySelectorAll('.question-builder');
+  blocks.forEach(function(el, i) {
+    el.querySelector('.q-num-badge').textContent = 'Q' + (i+1);
   });
-}
-
-function selectCorrect(qNum, val) {
-  document.querySelectorAll(`#correctSelect_${qNum} .correct-opt`).forEach(btn => {
-    btn.classList.toggle('selected', parseInt(btn.dataset.val) === val);
-  });
-  document.getElementById(`correctVal_${qNum}`).value = val;
-  updateSubmitBtn();
 }
 
 function updateQCount() {
-  const count = document.querySelectorAll('.question-builder').length;
-  document.getElementById('qCount').textContent = `(${count})`;
+  var count = document.querySelectorAll('.question-builder').length;
+  document.getElementById('qCount').textContent = '(' + count + ')';
 }
 
 function updateSubmitBtn() {
-  const qs = document.querySelectorAll('.question-builder');
-  const allCorrect = [...document.querySelectorAll('[id^="correctVal_"]')].every(el => el.value !== '');
-  document.getElementById('submitBtn').disabled = qs.length === 0 || !allCorrect;
+  var qs = document.querySelectorAll('.question-builder');
+  var allFilled = true;
+  qs.some(function(q) {
+    var inputs = q.querySelectorAll('input[required], select[required]');
+    for (var i = 0; i < inputs.length; i++) {
+      if (!inputs[i].value.trim()) {
+        allFilled = false;
+        return true;
+      }
+    }
+    return false;
+  });
+  document.getElementById('submitBtn').disabled = qs.length === 0 || !allFilled;
 }
-
-// Add one question by default
-addQuestion();
 </script>
+
+<script src="{{ url_for('static', filename='theme.js') }}"></script>
 </body>
 </html>
+
+

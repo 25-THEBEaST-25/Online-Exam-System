@@ -54,7 +54,19 @@ CREATE TABLE IF NOT EXISTS results (
     FOREIGN KEY (exam_id)    REFERENCES exams(id)
 );
 
--- 6. Default admin account
+-- NEW: 6. Attendance table for absences (admin-marked)
+CREATE TABLE IF NOT EXISTS attendance (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT NOT NULL,
+    exam_id INT NOT NULL,
+    status ENUM('present', 'absent') NOT NULL DEFAULT 'present',
+    marked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES users(id),
+    FOREIGN KEY (exam_id) REFERENCES exams(id),
+    UNIQUE KEY unique_student_exam (student_id, exam_id)
+);
+
+-- 7. Default admin account
 --    Username: admin  |  Password: admin123
 INSERT IGNORE INTO users (username, password, role, full_name)
 VALUES (
@@ -84,3 +96,4 @@ VALUES
    'for', 'while', 'do-while', 'for-in', 3);
 
 SELECT 'Setup complete! Default admin: admin / admin123' AS status;
+

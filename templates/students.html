@@ -6,7 +6,7 @@
   <title>Students — ExamCloud</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body data-theme="dark">
 <nav class="navbar">
   <div class="navbar-brand">📋 Exam<span>Cloud</span></div>
   <div class="navbar-links">
@@ -16,6 +16,7 @@
     <a href="/admin/results">Results</a>
     <span class="nav-badge">ADMIN</span>
     <form method="GET" action="/logout" style="margin:0;"><button class="btn-logout">Logout</button></form>
+    <button class="theme-toggle" title="Toggle Theme" aria-label="Toggle light/dark mode"></button>
   </div>
 </nav>
 <div class="container">
@@ -59,7 +60,10 @@
   </div>
 
   <!-- STUDENTS TABLE -->
-  <div class="card" style="margin-bottom:2rem;">
+  <div class="card">
+    <div class="flex items-center justify-between mb-2">
+      <div class="card-title">All Students</div>
+    </div>
     {% if students %}
     <div class="table-wrapper">
       <table>
@@ -86,11 +90,13 @@
     {% endif %}
   </div>
 </div>
+
 <script>
 function toggleAddForm() {
-  const el = document.getElementById('addStudentForm');
+  var el = document.getElementById('addStudentForm');
   el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 </script>
+{% include 'theme_js.html' %}
 </body>
 </html>

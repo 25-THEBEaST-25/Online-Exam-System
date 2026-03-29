@@ -6,13 +6,14 @@
   <title>Student Dashboard — ExamCloud</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body data-theme="dark">
 <nav class="navbar">
   <div class="navbar-brand">📋 Exam<span>Cloud</span></div>
   <div class="navbar-links">
     <a href="/student" class="active">My Exams</a>
     <span class="nav-badge" style="background:var(--amber);">STUDENT</span>
     <form method="GET" action="/logout" style="margin:0;"><button class="btn-logout">Logout</button></form>
+    <button class="theme-toggle" title="Toggle Theme" aria-label="Toggle light/dark mode"></button>
   </div>
 </nav>
 
@@ -25,6 +26,19 @@
     <div>
       <div class="breadcrumb">Welcome back 👋</div>
       <h1>Hello, <span>{{ session.full_name }}</span></h1>
+    </div>
+    <a href="/student/report.pdf" class="btn btn-secondary">📄 Download Report</a>
+  </div>
+
+  <!-- STATS GRID -->
+  <div class="stats-grid">
+    <div class="stat-card teal">
+      <div class="stat-num">{{ completed_count }}</div>
+      <div class="stat-label">Papers/Quizzes Done</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-num">{{ absence_count }}</div>
+      <div class="stat-label">Absences</div>
     </div>
   </div>
 
@@ -47,7 +61,7 @@
           <span>❓ {{ exam.question_count }} questions</span>
         </div>
         <a href="/exam/{{ exam.id }}" class="btn btn-primary btn-sm btn-full"
-          onclick="return confirm('Start exam?\n\nOnce started the timer begins. Make sure you are ready.\n\nDo NOT refresh the page during the exam.')">
+          onclick="return confirm('Start exam?\\n\\nOnce started the timer begins. Make sure you are ready.\\n\\nDo NOT refresh the page during the exam.')">
           ▶ Start Exam
         </a>
       </div>
@@ -80,7 +94,7 @@
               <td>
                 <div style="display:flex;align-items:center;gap:.5rem;">
                   <div style="width:80px;background:rgba(255,255,255,.06);border-radius:4px;height:5px;">
-                    <div style="width:{{ pct }}%;height:100%;border-radius:4px;background:{% if pct>=60 %}var(--green){% elif pct>=35 %}var(--amber){% else %}var(--red){% endif %};"></div>
+                    <div style="width:{{ pct }}%;height:100%;border-radius:4px;background:{% if pct>=60 %}var(--green);{% elif pct>=35 %}var(--amber);{% else %}var(--red);{% endif %}"></div>
                   </div>
                   <span style="font-family:var(--font-mono);font-size:.8rem;">{{ pct }}%</span>
                 </div>
@@ -115,5 +129,6 @@ function switchTab(name, btn) {
   btn.classList.add('active');
 }
 </script>
+{% include 'theme_js.html' %}
 </body>
 </html>

@@ -6,7 +6,7 @@
   <title>Admin Dashboard — ExamCloud</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body data-theme="dark">
 
 <!-- NAVBAR -->
 <nav class="navbar">
@@ -20,6 +20,7 @@
     <form method="GET" action="/logout" style="margin:0;">
       <button class="btn-logout">Logout</button>
     </form>
+    <button class="theme-toggle" title="Toggle Theme" aria-label="Toggle light/dark mode"></button>
   </div>
 </nav>
 
@@ -118,5 +119,7 @@
     </a>
   </div>
 </div>
+<script src="{{ url_for('static', filename='theme.js') }}"></script>
+
 </body>
 </html>

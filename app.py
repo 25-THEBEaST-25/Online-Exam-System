@@ -1,8 +1,14 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
 import mysql.connector
 from mysql.connector import Error
 import hashlib
 import os
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+from io import BytesIO
 
 app = Flask(__name__)
 app.secret_key = 'examSystem2024SecretKey'
@@ -11,7 +17,7 @@ app.secret_key = 'examSystem2024SecretKey'
 DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',
-'password': 'PHW#84#jeor',
+    'password': 'PHW#84#jeor',
     'database': 'online_exam_db'
 }
 
@@ -81,6 +87,19 @@ def init_db():
             attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (student_id) REFERENCES users(id),
             FOREIGN KEY (exam_id) REFERENCES exams(id)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS attendance (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            student_id INT NOT NULL,
+            exam_id INT NOT NULL,
+            status ENUM('present', 'absent') NOT NULL DEFAULT 'present',
+            marked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (student_id) REFERENCES users(id),
+            FOREIGN KEY (exam_id) REFERENCES exams(id),
+            UNIQUE KEY unique_student_exam (student_id, exam_id)
         )
     """)
 
@@ -336,8 +355,107 @@ def student_dashboard():
         WHERE r.student_id=%s ORDER BY r.attempted_at DESC
     """, (session['user_id'],))
     my_results = cursor.fetchall()
+    cursor.execute("SELECT COUNT(*) AS cnt FROM results WHERE student_id=%s", (session['user_id'],))
+    completed_count = cursor.fetchone()['cnt']
+    cursor.execute("SELECT COUNT(*) AS cnt FROM attendance WHERE student_id=%s AND status='absent'", (session['user_id'],))
+    absence_count = cursor.fetchone()['cnt']
     cursor.close(); conn.close()
-    return render_template('student_dashboard.html', exams=exams, my_results=my_results)
+    return render_template('student_dashboard.html', exams=exams, my_results=my_results, completed_count=completed_count, absence_count=absence_count)
+
+
+@app.route('/student/report.pdf')
+def student_report():
+    if session.get('role') != 'student':
+        return redirect(url_for('login'))
+    
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT full_name, username FROM users WHERE id=%s", (session['user_id'],))
+    student = cursor.fetchone()
+    cursor.execute("""
+        SELECT r.*, e.exam_name FROM results r
+        JOIN exams e ON r.exam_id=e.id
+        WHERE r.student_id=%s ORDER BY r.attempted_at DESC
+    """, (session['user_id'],))
+    results = cursor.fetchall()
+    cursor.execute("""
+        SELECT a.*, e.exam_name FROM attendance a
+        JOIN exams e ON a.exam_id=e.id
+        WHERE a.student_id=%s AND a.status='absent' ORDER BY a.marked_at DESC
+    """, (session['user_id'],))
+    absences = cursor.fetchall()
+    cursor.close(); conn.close()
+    
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    story = []
+    
+    # Title
+    title = Paragraph(f"Exam Report - {student['full_name']} ({student['username']})", styles['Title'])
+    story.append(title)
+    story.append(Spacer(1, 12))
+    
+    # Stats
+    stats_data = [
+        ['Metric', 'Count'],
+        ['Completed Exams', len(results)],
+        ['Absences', len(absences)]
+    ]
+    stats_table = Table(stats_data)
+    stats_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.grey),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,0), 14),
+        ('BOTTOMPADDING', (0,0), (-1,0), 12),
+        ('BACKGROUND', (0,1), (-1,-1), colors.beige),
+        ('GRID', (0,0), (-1,-1), 1, colors.black)
+    ]))
+    story.append(stats_table)
+    story.append(Spacer(1, 12))
+    
+    # Completed Exams
+    if results:
+        story.append(Paragraph("Completed Exams", styles['Heading2']))
+        results_data = [['Exam', 'Score', 'Total', 'Percentage', 'Date']]
+        for r in results:
+            pct = round((r['score']/r['total'])*100) if r['total'] else 0
+            results_data.append([r['exam_name'], f"{r['score']}/{r['total']}", pct, r['attempted_at'].strftime('%Y-%m-%d')])
+        results_table = Table(results_data)
+        results_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.teal),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('GRID', (0,0), (-1,-1), 1, colors.black),
+            ('FONTSIZE', (0,0), (-1,0), 12)
+        ]))
+        story.append(results_table)
+        story.append(Spacer(1, 12))
+    
+    # Absences
+    if absences:
+        story.append(Paragraph("Marked Absences", styles['Heading2']))
+        abs_data = [['Exam', 'Marked Date']]
+        for a in absences:
+            abs_data.append([a['exam_name'], a['marked_at'].strftime('%Y-%m-%d')])
+        abs_table = Table(abs_data)
+        abs_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.red),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('GRID', (0,0), (-1,-1), 1, colors.black),
+            ('FONTSIZE', (0,0), (-1,0), 12)
+        ]))
+        story.append(abs_table)
+    
+    doc.build(story)
+    buffer.seek(0)
+    
+    return send_file(buffer, as_attachment=True, download_name=f"exam_report_{student['username']}.pdf", mimetype='application/pdf')
 
 
 # REGISTER (Student self-register)
@@ -436,3 +554,4 @@ def submit_exam(exam_id):
 if __name__ == '__main__':
     init_db()
     app.run(host='0.0.0.0', debug=True, port=5000)
+
